@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - override /data: bdd100k
+  - override /model: cycle_gan
+  - override /callbacks: default
+  - override /trainer: gpu
+
+tags: ["cyclegan", "cyclegan-unet256", "bdd100k"]
+
+seed: 42
+
+trainer:
+  precision: bf16-mixed
+  # detect_anomaly: true
+
+data:
+  batch_size: 64

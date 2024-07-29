@@ -1,0 +1,10 @@
+_target_: src.data.ab_datamodule.ABDataModule
+num_workers: 8
+pin_memory: true
+
+train_dataset:
+  _target_: src.data.bdd100k_dataset.BDD100KDataset
+  _partial_: true
+  path: data/bdd100k
+  size: 100k
+  split: train

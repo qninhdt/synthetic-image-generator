@@ -1,0 +1,32 @@
+_target_: src.models.cyclegan_module.CycleGANLitModule
+
+gan_mode: lsgan
+
+G_net:
+  _target_: src.models.gan.utils.define_G
+  _partial_: true
+  netG: unet_256
+  input_nc: 3
+  output_nc: 3
+  ngf: 64
+
+D_net:
+  _target_: src.models.gan.utils.define_D
+  _partial_: true
+  netD: basic
+  input_nc: 3
+  ndf: 64
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0001
+  betas: [0.5, 0.999]
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  _partial_: true
+  eta_min: 0
+  T_max: 200
+
+compile: false
