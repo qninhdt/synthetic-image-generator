@@ -1,6 +1,7 @@
 from typing import Any, Dict, Tuple, Type
 
 import itertools
+from time import time
 
 import torch
 import torch.nn.functional as F
@@ -9,6 +10,7 @@ import wandb
 from lightning.pytorch.loggers import WandbLogger
 from lightning import LightningModule
 from torchmetrics.image import FrechetInceptionDistance
+from torchmetrics import MeanMetric
 
 
 from .gan.loss import GANLoss
@@ -74,6 +76,8 @@ class CycleGANLitModule(LightningModule):
         batch_idx: int,
     ) -> torch.Tensor:
         G_optimizer, D_A_optimizer, D_B_optimizer = self.optimizers()
+
+        last_time = time()
 
         real_A, real_B = batch["A_image"], batch["B_image"]
 
@@ -159,6 +163,7 @@ class CycleGANLitModule(LightningModule):
         )
 
         self.log("lr", self.trainer.optimizers[0].param_groups[0]["lr"], prog_bar=True)
+        self.log("training_speed", 1 / (time() - last_time))
 
     def on_train_epoch_end(self) -> None:
         G_scheduler, D_A_scheduler, D_B_scheduler = self.lr_schedulers()
