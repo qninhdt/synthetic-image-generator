@@ -16,6 +16,7 @@ from torchmetrics import MeanMetric
 from .gan.loss import GANLoss
 from .utils import set_requires_grad, init_weights
 from ..utils.visualization import concat_images
+from ..utils.image_pool import ImagePool
 from ..data.ab_data_processor import ABDataProcessor
 
 
@@ -32,6 +33,7 @@ class CycleGANLitModule(LightningModule):
         lambda_identity: float = 0.5,
         lambda_A: float = 10.0,
         lambda_B: float = 10.0,
+        pool_size: int = 50,
     ) -> None:
         super().__init__()
 
@@ -65,6 +67,9 @@ class CycleGANLitModule(LightningModule):
             self.lambda_A = lambda_A
             self.lambda_B = lambda_B
 
+            self.fake_A_pool = ImagePool(pool_size)
+            self.fake_B_pool = ImagePool(pool_size)
+
             self.gan_loss = GANLoss(gan_mode=gan_mode)
 
     # def on_train_start(self) -> None:
@@ -87,7 +92,7 @@ class CycleGANLitModule(LightningModule):
         rec_B = self.G_A_net(fake_A)
 
         # generator loss
-        set_requires_grad([self.D_A_net, self.D_B_net], False)
+        # set_requires_grad([self.D_A_net, self.D_B_net], False)
         G_optimizer.optimizer.zero_grad()
 
         identity_A = self.G_A_net(real_B)
@@ -120,16 +125,17 @@ class CycleGANLitModule(LightningModule):
         G_optimizer.step()
 
         # # discriminator loss
-        set_requires_grad([self.D_A_net, self.D_B_net], True)
+        # set_requires_grad([self.D_A_net, self.D_B_net], True)
         D_A_optimizer.optimizer.zero_grad()
 
-        # real B
-        real_B_pred = self.D_A_net(real_B)
-        loss_D_A_real = self.gan_loss(real_B_pred, True)
+        # real A
+        real_A_pred = self.D_A_net(real_A)
+        loss_D_A_real = self.gan_loss(real_A_pred, True)
 
-        # fake B
-        fake_B_pred = self.D_A_net(fake_B.detach())
-        loss_D_A_fake = self.gan_loss(fake_B_pred, False)
+        # fake A
+        fake_A = self.fake_A_pool.query(fake_A)
+        fake_A_pred = self.D_A_net(fake_A.detach())
+        loss_D_A_fake = self.gan_loss(fake_A_pred, False)
 
         loss_D_A = (loss_D_A_real + loss_D_A_fake) / 2
         self.manual_backward(loss_D_A)
@@ -138,15 +144,15 @@ class CycleGANLitModule(LightningModule):
         D_B_optimizer.optimizer.zero_grad()
 
         # real A
-        real_A_pred = self.D_B_net(real_A)
-        loss_D_B_real = self.gan_loss(real_A_pred, True)
+        real_B_pred = self.D_B_net(real_B)
+        loss_D_B_real = self.gan_loss(real_B_pred, True)
 
         # fake A
-        fake_A_pred = self.D_B_net(fake_A.detach())
-        loss_D_B_fake = self.gan_loss(fake_A_pred, False)
+        fake_B = self.fake_B_pool.query(fake_B)
+        fake_B_pred = self.D_B_net(fake_B.detach())
+        loss_D_B_fake = self.gan_loss(fake_B_pred, False)
 
         loss_D_B = (loss_D_B_real + loss_D_B_fake) / 2
-
         self.manual_backward(loss_D_B)
         D_B_optimizer.step()
 
