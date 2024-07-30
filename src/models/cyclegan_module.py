@@ -49,12 +49,8 @@ class CycleGANLitModule(LightningModule):
         self.A_to_B_samples = []
         self.B_to_A_samples = []
 
-        self.val_A_fid = FrechetInceptionDistance(
-            feature=2048, input_img_size=(3, 256, 256)
-        )
-        self.val_B_fid = FrechetInceptionDistance(
-            feature=2048, input_img_size=(3, 256, 256)
-        )
+        self.val_A_fid = FrechetInceptionDistance(feature=2048)
+        self.val_B_fid = FrechetInceptionDistance(feature=2048)
 
         if self.training:
             self.D_A_net = D_net()
