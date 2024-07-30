@@ -16,7 +16,7 @@ class ABDataModule(LightningDataModule):
     def __init__(
         self,
         train_dataset: Type[Dataset],
-        val_dataset: Optional[Type[Dataset]] = None,
+        val_dataset: Type[Dataset],
         test_dataset: Optional[Type[Dataset]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
@@ -29,7 +29,7 @@ class ABDataModule(LightningDataModule):
         self.save_hyperparameters(logger=False)
 
         # data transformations
-        self.ab_data_processor = ABDataProcessor(size=512)
+        self.ab_data_processor = ABDataProcessor(size=256)
 
         self.train_dataset: Optional[Dataset] = None
         self.val_dataset: Optional[Dataset] = None
@@ -53,28 +53,31 @@ class ABDataModule(LightningDataModule):
 
         if stage == "fit":
             self.train_dataset = self.hparams.train_dataset()
-
-            if self.hparams.val_dataset is not None:
-                self.val_dataset = self.hparams.val_dataset()
+            self.val_dataset = self.hparams.val_dataset()
 
             if self.hparams.test_dataset is not None:
-                self.test_dataset = instantiate(self.hparams.test_dataset)
+                self.test_dataset = self.hparams.test_dataset()
 
     def collate_fn(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         batch = [self.ab_data_processor.preprocess_sample(sample) for sample in batch]
 
-        A_image = torch.stack([sample["A_image"] for sample in batch])
-        B_image = torch.stack([sample["B_image"] for sample in batch])
+        A_image = [sample["A_image"] for sample in batch if "A_image" in sample]
+        B_image = [sample["B_image"] for sample in batch if "B_image" in sample]
 
-        A_size = torch.tensor([sample["A_size"] for sample in batch])
-        B_size = torch.tensor([sample["B_size"] for sample in batch])
+        A_size = [sample["A_size"] for sample in batch if "A_size" in sample]
+        B_size = [sample["B_size"] for sample in batch if "B_size" in sample]
 
-        return {
-            "A_image": A_image,
-            "B_image": B_image,
-            "A_size": A_size,
-            "B_size": B_size,
-        }
+        output = dict()
+
+        if len(A_image) > 0:
+            output["A_image"] = torch.stack(A_image)
+            output["A_size"] = A_size
+
+        if len(B_image) > 0:
+            output["B_image"] = torch.stack(B_image)
+            output["B_size"] = B_size
+
+        return output
 
     def create_dataloader(self, dataset: Dataset, shuffle: bool) -> Dataset:
         return DataLoader(
@@ -90,7 +93,7 @@ class ABDataModule(LightningDataModule):
         return self.create_dataloader(self.train_dataset, True)
 
     def val_dataloader(self) -> DataLoader[Any]:
-        return self.create_dataloader(self.train_dataset, False)
+        return self.create_dataloader(self.val_dataset, True)
 
     def test_dataloader(self) -> DataLoader[Any]:
-        return self.create_dataloader(self.train_dataset, False)
+        return self.create_dataloader(self.val_dataset, True)

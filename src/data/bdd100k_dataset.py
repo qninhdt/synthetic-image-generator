@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import torch
 import json
-from random import randint
+from random import randint, shuffle
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 from tqdm import tqdm
@@ -11,10 +11,11 @@ from tqdm import tqdm
 
 class BDD100KDataset(Dataset):
 
-    def __init__(self, path, size, split):
+    def __init__(self, path, size, split, paired=True):
         self.path = path
         self.size = size
         self.split = split
+        self.paired = paired
 
         self.annotation_path = os.path.join(path, "labels", f"det_{split}.txt")
 
@@ -33,8 +34,8 @@ class BDD100KDataset(Dataset):
 
         image_ids = set(image_ids)
 
-        self.A_annotations = []
-        self.B_annotations = []
+        A_images = []
+        B_images = []
 
         with open(
             os.path.join(self.path, "labels", "det_20", f"det_{self.split}.json")
@@ -54,15 +55,23 @@ class BDD100KDataset(Dataset):
                 }
 
                 if timeofday == "daytime":
-                    self.A_annotations.append(label)
+                    A_images.append(label)
                 elif timeofday == "night":
-                    self.B_annotations.append(label)
+                    B_images.append(label)
 
-        print(f"Loaded {len(self.A_annotations)} daytime images")
-        print(f"Loaded {len(self.B_annotations)} nighttime images")
+        self.annotations = A_images + B_images
+
+        self.n_A_images = len(A_images)
+        self.n_B_images = len(B_images)
+
+        print(f"Loaded {self.n_A_images} daytime images")
+        print(f"Loaded {self.n_B_images} nighttime images")
 
     def __len__(self):
-        return max(len(self.A_annotations), len(self.B_annotations))
+        if self.paired:
+            return max(self.n_A_images, self.n_B_images)
+        else:
+            return self.n_A_images + self.n_B_images
 
     def load_image(self, name):
         return Image.open(
@@ -70,16 +79,31 @@ class BDD100KDataset(Dataset):
         ).convert("RGB")
 
     def __getitem__(self, idx):
-        A_idx = self.A_annotations[idx % len(self.A_annotations)]
-        # randomly select a B image to avoid fixed pairs
-        B_idx = self.B_annotations[randint(0, len(self.B_annotations) - 1)]
+        if self.paired:
+            A = self.annotations[idx % self.n_A_images]
+            # randomly select a B image to avoid fixed pairs
+            B = self.annotations[self.n_A_images + randint(0, self.n_B_images - 1)]
 
-        A_image = self.load_image(A_idx["name"])
-        B_image = self.load_image(B_idx["name"])
+            A_image = self.load_image(A["name"])
+            B_image = self.load_image(B["name"])
 
-        return {
-            "A_image": A_image,
-            "B_image": B_image,
-            "A_size": A_image.size,
-            "B_size": B_image.size,
-        }
+            return {
+                "A_image": A_image,
+                "B_image": B_image,
+                "A_size": A_image.size,
+                "B_size": B_image.size,
+            }
+        else:
+            label = self.annotations[idx]
+            image = self.load_image(label["name"])
+
+            if idx < self.n_A_images:
+                return {
+                    "A_image": image,
+                    "A_size": image.size,
+                }
+            else:
+                return {
+                    "B_image": image,
+                    "B_size": image.size,
+                }

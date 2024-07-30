@@ -8,3 +8,11 @@ train_dataset:
   path: data/bdd100k
   size: 100k
   split: train
+
+val_dataset:
+  _target_: src.data.bdd100k_dataset.BDD100KDataset
+  _partial_: true
+  path: data/bdd100k
+  size: 100k
+  split: val
+  paired: false

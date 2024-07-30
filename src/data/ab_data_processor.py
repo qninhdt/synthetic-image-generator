@@ -1,7 +1,9 @@
+import torch
 import albumentations as A
 import numpy as np
 from albumentations.pytorch import ToTensorV2
 import torchvision.transforms.functional as TF
+import lightning.pytorch.callbacks.model_checkpoint
 
 
 class ABDataProcessor:
@@ -22,19 +24,34 @@ class ABDataProcessor:
         return self.image_transform(image=image)["image"]
 
     def preprocess_sample(self, sample):
-        return {
-            "A_image": self.preprocess(sample["A_image"]),
-            "B_image": self.preprocess(sample["B_image"]),
-            "A_size": sample["A_size"],
-            "B_size": sample["B_size"],
-        }
+        output_sample = dict()
 
-    def postprocess(self, image, original_size=None):
-        image = (image * 0.5) + 0.5
+        if "A_image" in sample:
+            output_sample["A_image"] = self.preprocess(sample["A_image"])
+            output_sample["A_size"] = sample["A_image"].size
 
-        if original_size is not None:
-            image = TF.resize(image, (original_size[1], original_size[0]))
+        if "B_image" in sample:
+            output_sample["B_image"] = self.preprocess(sample["B_image"])
+            output_sample["B_size"] = sample["B_image"].size
 
-        image = TF.to_pil_image(image)
+        return output_sample
 
-        return image
+    def postprocess(self, images, original_sizes=None, to_pil=True):
+        images = (images * 0.5) + 0.5
+
+        output_images = []
+
+        for i, image in enumerate(images):
+
+            if original_sizes:
+                image = TF.resize(image, original_sizes[i])
+
+            if to_pil:
+                image = TF.to_pil_image(image)
+            else:
+                image = (image * 255).type(torch.uint8)
+                image = torch.clip(image, 0, 255)
+
+            output_images.append(image)
+
+        return output_images

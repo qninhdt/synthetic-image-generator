@@ -6,15 +6,17 @@ defaults:
   - override /callbacks: default
   - override /trainer: gpu
 
+experiment_name: cyclegan_resnet9blocks_bdd10k
+
 tags: ["cyclegan", "cyclegan-unet256", "bdd100k"]
 
 seed: 42
 
 trainer:
   precision: bf16-mixed
-
-model:
-  compile: true
+  max_epochs: 10
+  limit_train_batches: 0.1
+  limit_val_batches: 0.1
 
 data:
-  batch_size: 64
+  batch_size: 8
