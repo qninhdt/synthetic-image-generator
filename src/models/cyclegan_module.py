@@ -52,12 +52,6 @@ class CycleGANLitModule(LightningModule):
 
             self.gan_loss = GANLoss(gan_mode=gan_mode)
 
-        if self.hparams.compile:
-            self.G_A_net = torch.compile(self.G_A_net)
-            self.G_B_net = torch.compile(self.G_B_net)
-            self.D_A_net = torch.compile(self.D_A_net)
-            self.D_B_net = torch.compile(self.D_B_net)
-
     def on_train_start(self) -> None:
         pass
 

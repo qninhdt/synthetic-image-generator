@@ -40,7 +40,9 @@ log = RankedLogger(__name__, rank_zero_only=True)
 
 # enalbe tensor cores
 torch.set_float32_matmul_precision("high")
-torch.autograd.set_detect_anomaly(True)
+
+# enable cudnn benchmark
+torch.backends.cudnn.benchmark = True
 
 
 @task_wrapper
@@ -63,6 +65,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
+
+    if cfg.model.compile:
+        model = torch.compile(model)
 
     log.info("Instantiating callbacks...")
     callbacks: List[Callback] = instantiate_callbacks(cfg.get("callbacks"))

@@ -12,7 +12,9 @@ seed: 42
 
 trainer:
   precision: bf16-mixed
-  # detect_anomaly: true
+
+model:
+  compile: true
 
 data:
   batch_size: 64
