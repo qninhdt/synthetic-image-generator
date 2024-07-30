@@ -8,7 +8,7 @@ defaults:
 
 experiment_name: cyclegan_resnet9blocks_bdd10k
 
-tags: ["cyclegan", "cyclegan-unet256", "bdd100k"]
+tags: ["cyclegan", "cyclegan-resnet9blocks-bdd100k", "bdd10k"]
 
 seed: 42
 
