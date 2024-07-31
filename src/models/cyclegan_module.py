@@ -264,7 +264,7 @@ class CycleGANLitModule(LightningModule):
         )
 
         D_A_optimizer = self.hparams.optimizer(params=self.D_A_net.parameters())
-        D_B_optimizer = self.hparams.optimizer(params=self.D_A_net.parameters())
+        D_B_optimizer = self.hparams.optimizer(params=self.D_B_net.parameters())
 
         G_scheduler = self.hparams.scheduler(G_optimizer)
         D_A_scheduler = self.hparams.scheduler(D_A_optimizer)
