@@ -228,14 +228,17 @@ class CycleGANLitModule(LightningModule):
         if self.is_wandb_enabled():
             wandb.log(
                 {
-                    "day_to_night_samples": [
+                    "val/day_to_night_samples": [
                         wandb.Image(image) for image in self.A_to_B_samples
                     ],
-                    "night_to_day_samples": [
+                    "val/night_to_day_samples": [
                         wandb.Image(image) for image in self.B_to_A_samples
                     ],
                 }
             )
+
+        self.A_to_B_samples = []
+        self.B_to_A_samples = []
 
     def is_wandb_enabled(self) -> bool:
         if not isinstance(self.trainer.logger, list):
