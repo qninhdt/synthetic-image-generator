@@ -14,7 +14,7 @@ seed: 42
 
 trainer:
   precision: bf16-mixed
-  max_epochs: 50
+  max_epochs: 20
   limit_train_batches: 0.1
   limit_val_batches: 0.1
 
